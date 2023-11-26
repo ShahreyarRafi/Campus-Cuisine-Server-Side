@@ -73,12 +73,15 @@ async function run() {
     })
 
 
+
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
+
+
 
 
 
@@ -152,7 +155,6 @@ async function run() {
       }
     });
 
-
     app.put('/meals/:mealId/reviews/:reviewId', async (req, res) => {
       try {
         const mealId = req.params.mealId;
@@ -191,8 +193,19 @@ async function run() {
       }
     });
 
-    // ENDS HERE
 
+
+    app.put('/api/like-meal/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const update = { $inc: { liked_count: 1 } }
+      const result = await mealsCollection.updateOne(filter, update);
+      console.log(result);
+      res.send(result);
+    })
+
+
+    // ends here
 
 
 

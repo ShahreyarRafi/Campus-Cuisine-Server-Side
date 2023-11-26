@@ -29,6 +29,45 @@ async function run() {
 
 
     const mealsCollection = client.db('CampusCuisine').collection('MealsDB');
+    const userCollection = client.db('CampusCuisine').collection('UserDB')
+    const mealRequestCollection = client.db('CampusCuisine').collection('MealRequestDB')
+
+    // for Meal Request
+
+    app.post('/api/request-meal', async (req, res) => {
+      const newMealRequest = req.body;
+      console.log(newMealRequest);
+      const result = await mealRequestCollection.insertOne(newMealRequest);
+      console.log(result);
+      res.send(result);
+    })
+
+    // for cart
+
+    app.get('/users', async (req, res) => {
+      const cursor = userCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.post('/user', async (req, res) => {
+      const newCartItem = req.body;
+      console.log(newCartItem);
+      const result = await userCollection.insertOne(newCartItem);
+      console.log(result);
+      res.send(result);
+    })
+
+
+    
+    app.get('/users/:email', async (req, res) => {
+      const email = req.params.email; 
+      const query = { email: email };
+      const results = await userCollection.find(query).toArray();
+      res.send(results);
+    });
+    
+
 
 
     // for meals
@@ -39,6 +78,7 @@ async function run() {
       res.send(result);
     })
 
+
     app.get('/meals/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
@@ -46,9 +86,15 @@ async function run() {
       res.send(result);
     })
 
-    
-   
+    app.get('/:meal_status', async (req, res) => {
+      const mealStatus = req.params.meal_status;
+      const query = { meal_status: mealStatus };
+      const results = await mealsCollection.find(query).toArray();
+      res.send(results);
+    });
 
+
+  
 
 
     // Send a ping to confirm a successful connection

@@ -73,15 +73,12 @@ async function run() {
     })
 
 
-
-
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
-
 
 
 
@@ -156,7 +153,45 @@ async function run() {
     });
 
 
-    // end here
+    app.put('/meals/:mealId/reviews/:reviewId', async (req, res) => {
+      try {
+        const mealId = req.params.mealId;
+        const reviewId = req.params.reviewId;
+
+        // Assuming your MongoDB client is named "client" and connected to the database
+        const collection = client.db('CampusCuisine').collection('MealsDB');
+
+        // Find the meal with the specified ID
+        const meal = await collection.findOne({ _id: new ObjectId(mealId) });
+
+        // Find the review with the specified ID
+        const review = meal.reviews.find((r) => r.review_id === reviewId);
+
+        if (!review) {
+          return res.status(404).json({ error: 'Review not found' });
+        }
+
+        // Extract updated data from the request body
+        const { ratings, review_text } = req.body;
+
+        // Update the review properties
+        review.ratings = ratings || review.ratings;
+        review.review_text = review_text || review.review_text;
+
+        // Update the meal in the database
+        await collection.updateOne(
+          { _id: new ObjectId(mealId), 'reviews.review_id': reviewId },
+          { $set: { 'reviews.$': review } }
+        );
+
+        res.status(200).json({ message: 'Review updated successfully', updatedReview: review });
+      } catch (error) {
+        console.error('Error updating review:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
+
+    // ENDS HERE
 
 
 

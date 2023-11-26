@@ -42,6 +42,20 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/api/request-meal', async (req, res) => {
+      const cursor = mealRequestCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.delete('/api/request-meal/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await mealRequestCollection.deleteOne(query);
+      res.send(result);
+    })
+
+
     // for cart
 
     app.get('/users', async (req, res) => {
@@ -59,14 +73,15 @@ async function run() {
     })
 
 
-    
+
     app.get('/users/:email', async (req, res) => {
-      const email = req.params.email; 
+      const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
-    
+
+
 
 
 
@@ -93,8 +108,26 @@ async function run() {
       res.send(results);
     });
 
-
+    app.post('/api/add-review', async (req, res) => {
+      try {
+          const { meal_id, reviews } = req.body;
   
+          // Assuming mealsCollection has a document with a matching _id
+          const result = await mealsCollection.updateOne(
+              { _id: new ObjectId(meal_id) }, // Convert meal_id to ObjectId
+              { $set: { reviews } }
+          );
+  
+          res.status(200).json({ success: true, message: 'Review added successfully' });
+      } catch (error) {
+          console.error('Error adding review:', error);
+          res.status(500).json({ success: false, message: 'Error adding review' });
+      }
+  });
+  
+// dfgjn jlfdgj /f sn dpofjsdfjk 
+
+
 
 
     // Send a ping to confirm a successful connection

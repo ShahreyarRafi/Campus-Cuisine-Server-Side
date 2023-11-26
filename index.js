@@ -74,13 +74,13 @@ async function run() {
 
 
 
+
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
-
 
 
 
@@ -108,24 +108,55 @@ async function run() {
       res.send(results);
     });
 
+
     app.post('/api/add-review', async (req, res) => {
       try {
-          const { meal_id, reviews } = req.body;
-  
-          // Assuming mealsCollection has a document with a matching _id
-          const result = await mealsCollection.updateOne(
-              { _id: new ObjectId(meal_id) }, // Convert meal_id to ObjectId
-              { $set: { reviews } }
-          );
-  
-          res.status(200).json({ success: true, message: 'Review added successfully' });
+        const { meal_id, reviews } = req.body;
+
+        // Assuming mealsCollection has a document with a matching _id
+        const result = await mealsCollection.updateOne(
+          { _id: new ObjectId(meal_id) }, // Convert meal_id to ObjectId
+          { $set: { reviews } }
+        );
+
+        res.status(200).json({ success: true, message: 'Review added successfully' });
       } catch (error) {
-          console.error('Error adding review:', error);
-          res.status(500).json({ success: false, message: 'Error adding review' });
+        console.error('Error adding review:', error);
+        res.status(500).json({ success: false, message: 'Error adding review' });
       }
-  });
-  
-// dfgjn jlfdgj /f sn dpofjsdfjk 
+    });
+
+    app.delete('/meals/:mealId/reviews/:reviewId', async (req, res) => {
+      try {
+        const mealId = req.params.mealId;
+        const reviewId = req.params.reviewId;
+
+        // Connect to MongoDB
+        await client.connect();
+
+        // Find the meal with the specified ID
+        const meal = await client.db('CampusCuisine').collection('MealsDB').findOne({ _id: new ObjectId(mealId) });
+
+        // Find the index of the review with the specified ID
+        const reviewIndex = meal.reviews.findIndex((review) => review.review_id === reviewId);
+
+        // If the review is found, remove it
+        if (reviewIndex !== -1) {
+          meal.reviews.splice(reviewIndex, 1);
+          // Update the meal in the database
+          await client.db('CampusCuisine').collection('MealsDB').updateOne({ _id: new ObjectId(mealId) }, { $set: { reviews: meal.reviews } });
+          res.status(204).end(); // 204 No Content - Success, no data to return
+        } else {
+          res.status(404).json({ error: 'Review not found' });
+        }
+      } catch (error) {
+        console.error('Error deleting review:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
+
+
+    // end here
 
 
 

@@ -73,12 +73,14 @@ async function run() {
     })
 
 
+
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
+
 
 
 
@@ -222,8 +224,28 @@ async function run() {
       res.send(result);
     })
 
+    app.patch('/meals/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const update = { $set: { meal_status: "Ready" } };
 
-    // ends here
+      try {
+        const result = await mealsCollection.updateOne(filter, update);
+
+        if (result.matchedCount === 1) {
+          res.status(200).json({ message: 'Meal status updated successfully.' });
+        } else {
+          res.status(404).json({ message: 'Meal not found.' });
+        }
+      } catch (error) {
+        console.error('Error updating meal status:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+      }
+    });
+
+
+    // Ends Here
+
 
 
     // Send a ping to confirm a successful connection

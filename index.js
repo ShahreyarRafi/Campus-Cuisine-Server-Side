@@ -73,6 +73,7 @@ async function run() {
     })
 
 
+
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -250,14 +251,17 @@ async function run() {
     });
 
 
-    app.patch('/users/:id', async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
+    app.patch('/users/:email/:username', async (req, res) => {
+      const email = req.params.email;
+      const username = req.params.username;
+
+      // Ensure both email and username match
+      const filter = { $and: [{ email: email }, { name: username }] };
       const update = { $set: { role: "Admin" } };
-    
+
       try {
         const result = await userCollection.updateOne(filter, update);
-    
+
         if (result.matchedCount === 1) {
           res.status(200).json({ message: 'User role updated successfully.' });
         } else {

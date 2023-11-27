@@ -73,7 +73,6 @@ async function run() {
     })
 
 
-
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -213,12 +212,19 @@ async function run() {
       }
     });
 
-
-
     app.put('/api/like-meal/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const update = { $inc: { liked_count: 1 } }
+      const result = await mealsCollection.updateOne(filter, update);
+      console.log(result);
+      res.send(result);
+    })
+
+    app.put('/api/review-count/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const update = { $inc: { review_count: 1 } }
       const result = await mealsCollection.updateOne(filter, update);
       console.log(result);
       res.send(result);
@@ -243,9 +249,7 @@ async function run() {
       }
     });
 
-
     // Ends Here
-
 
 
     // Send a ping to confirm a successful connection

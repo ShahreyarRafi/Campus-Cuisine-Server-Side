@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.n8c8sym.mongodb.net/?retryWrites=true&w=majority`;
-console.log(uri);
+
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -73,15 +73,12 @@ async function run() {
     })
 
 
-
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
-
-
 
 
 
@@ -100,6 +97,27 @@ async function run() {
       const result = await mealsCollection.findOne(query);
       res.send(result);
     })
+
+    app.delete('/meals/:mealId', async (req, res) => {
+      const mealId = req.params.mealId;
+
+      try {
+        // Convert mealId to ObjectId
+        const mealObjectId = new ObjectId(mealId);
+
+        // Find the meal with the specified ID and delete it
+        const result = await mealsCollection.deleteOne({ _id: mealObjectId });
+
+        if (result.deletedCount === 1) {
+          res.status(200).json({ message: 'Meal deleted successfully' });
+        } else {
+          res.status(404).json({ message: 'Meal not found' });
+        }
+      } catch (error) {
+        console.error('Error deleting meal:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
 
     app.get('/:meal_status', async (req, res) => {
       const mealStatus = req.params.meal_status;
@@ -206,7 +224,6 @@ async function run() {
 
 
     // ends here
-
 
 
     // Send a ping to confirm a successful connection

@@ -249,6 +249,26 @@ async function run() {
       }
     });
 
+
+    app.patch('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const update = { $set: { role: "Admin" } };
+    
+      try {
+        const result = await userCollection.updateOne(filter, update);
+    
+        if (result.matchedCount === 1) {
+          res.status(200).json({ message: 'User role updated successfully.' });
+        } else {
+          res.status(404).json({ message: 'User not found.' });
+        }
+      } catch (error) {
+        console.error('Error updating user role:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+      }
+    });
+
     // Ends Here
 
 

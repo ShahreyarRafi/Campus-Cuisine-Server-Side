@@ -81,7 +81,6 @@ async function run() {
     });
 
 
-
     app.get('/find-user', async (req, res) => {
       try {
         const { searchQuery } = req.query;
@@ -100,6 +99,27 @@ async function run() {
         res.status(500).json({ error: 'Internal Server Error' });
       }
     });
+
+
+    app.get('/find-user-to-serve', async (req, res) => {
+      try {
+        const { searchQuery } = req.query;
+        console.log('Received search query:', searchQuery);
+
+        const regex = new RegExp(searchQuery, 'i'); // case-insensitive search
+
+        const mealRequestCollection = client.db('CampusCuisine').collection('MealRequestDB')
+        const users = await mealRequestCollection.find({ $or: [{ user_name: regex }, { user_email: regex }] }).toArray();
+
+        console.log('Found users:', users);
+
+        res.json(users);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
+
 
     // for meals
 
@@ -143,6 +163,32 @@ async function run() {
       } catch (error) {
         console.error('Error deleting meal:', error);
         res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+
+
+    app.put('/meals/:id', async (req, res) => {
+      const { id } = req.params;
+      const updatedMeal = req.body;
+
+      try {
+        await client.connect();
+
+        const mealsCollection = client.db('CampusCuisine').collection('MealsDB');
+
+        const result = await mealsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedMeal }
+        );
+
+        if (result.modifiedCount > 0) {
+          res.json({ updated: true });
+        } else {
+          res.json({ updated: false });
+        }
+      } catch (error) {
+        console.error('Error updating meal:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
       }
     });
 
@@ -296,9 +342,28 @@ async function run() {
     });
 
 
-    // Ends Here
+    app.patch('/meal/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const update = { $set: { delivery_status: "Delivered" } };
 
-  
+      try {
+        const result = await mealRequestCollection.updateOne(filter, update);
+
+        if (result.matchedCount === 1) {
+          res.status(200).json({ message: 'Delivered successfully.' });
+        } else {
+          res.status(404).json({ message: 'Meal not found.' });
+        }
+      } catch (error) {
+        console.error('Error updating delivery status:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+      }
+    });
+
+// Ends Here
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

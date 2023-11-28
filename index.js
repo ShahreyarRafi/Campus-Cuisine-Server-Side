@@ -56,7 +56,7 @@ async function run() {
     })
 
 
-    // for cart
+    // for users
 
     app.get('/users', async (req, res) => {
       const cursor = userCollection.find();
@@ -72,12 +72,6 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/cartItems/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await userCollection.findOne(query);
-      res.send(result);
-    });
 
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
@@ -86,12 +80,6 @@ async function run() {
       res.send(results);
     });
 
-    app.delete('/cartItems/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
-      const result = await userCollection.deleteOne(query);
-      res.send(result);
-    })
 
 
     app.get('/find-user', async (req, res) => {
@@ -118,6 +106,14 @@ async function run() {
     app.get('/meals', async (req, res) => {
       const cursor = mealsCollection.find();
       const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.post('/meals', async (req, res) => {
+      const newMeal = req.body;
+      console.log(newMeal);
+      const result = await mealsCollection.insertOne(newMeal);
+      console.log(result);
       res.send(result);
     })
 
@@ -300,51 +296,9 @@ async function run() {
     });
 
 
-    app.post('/products', async (req, res) => {
-      const newProduct = req.body;
-      console.log(newProduct);
-      const result = await mealsCollection.insertOne(newProduct);
-      res.send(result);
-    })
+    // Ends Here
 
-    app.put('/products/:id', async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) }
-      const options = { upsert: true };
-      const updatedProducts = req.body;
-
-      const products = {
-        $set: {
-          name: updatedProducts.name,
-          brand: updatedProducts.brand,
-          type: updatedProducts.type,
-          price: updatedProducts.price,
-          description: updatedProducts.description,
-          rating: updatedProducts.rating,
-          photo: updatedProducts.photo,
-          featured: updatedProducts.featured,
-          engine_type: updatedProducts.engine_type,
-          transmission: updatedProducts.transmission,
-          fuel_type: updatedProducts.fuel_type,
-          drive_system: updatedProducts.drive_system,
-          infotainment: updatedProducts.infotainment,
-          seats: updatedProducts.seats
-        }
-      }
-      console.log(products);
-
-      const result = await mealsCollection.updateOne(filter, products, options);
-
-      res.send(result);
-    })
-
-    app.delete('/products/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
-      const result = await mealsCollection.deleteOne(query);
-      res.send(result);
-    })
-
+  
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

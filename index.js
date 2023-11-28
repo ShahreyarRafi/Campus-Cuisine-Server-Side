@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
+
 
 //middleware
 app.use(cors());
@@ -73,12 +75,15 @@ async function run() {
     })
 
 
+
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
+
+
 
 
     app.get('/find-user', async (req, res) => {
@@ -120,6 +125,29 @@ async function run() {
       }
     });
 
+
+    app.put('/update-user-badge/:email', async (req, res) => {
+      const email = req.params.email;
+      const { badge } = req.body;
+    
+      try {
+        // Find the user by email and update the badge
+        const result = await userCollection.updateOne(
+          { email: email }, // Use email directly as a string
+          { $set: { badge } }
+        );
+    
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+    
+        res.json({ success: true });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
+    
 
     // for meals
 
@@ -361,8 +389,26 @@ async function run() {
       }
     });
 
-// Ends Here
 
+
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent')
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
+// Ends Here
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

@@ -56,7 +56,7 @@ async function run() {
     })
 
 
-    // for cart
+    // for user
 
     app.get('/users', async (req, res) => {
       const cursor = userCollection.find();
@@ -73,7 +73,6 @@ async function run() {
     })
 
 
-
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -82,7 +81,24 @@ async function run() {
     });
 
 
+    app.get('/find-user', async (req, res) => {
+      try {
+        const { searchQuery } = req.query;
+        console.log('Received search query:', searchQuery);
 
+        const regex = new RegExp(searchQuery, 'i'); // case-insensitive search
+
+        const userCollection = client.db('CampusCuisine').collection('UserDB');
+        const users = await userCollection.find({ $or: [{ name: regex }, { email: regex }] }).toArray();
+
+        console.log('Found users:', users);
+
+        res.json(users);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
 
     // for meals
 
@@ -251,12 +267,9 @@ async function run() {
     });
 
 
-    app.patch('/users/:email/:username', async (req, res) => {
-      const email = req.params.email;
-      const username = req.params.username;
-
-      // Ensure both email and username match
-      const filter = { $and: [{ email: email }, { name: username }] };
+    app.patch('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
       const update = { $set: { role: "Admin" } };
 
       try {
@@ -273,8 +286,10 @@ async function run() {
       }
     });
 
+
     // Ends Here
 
+  
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

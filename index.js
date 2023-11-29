@@ -1,9 +1,10 @@
 const express = require('express');
+const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const app = express();
 const port = process.env.PORT || 5000;
 
 
@@ -34,7 +35,39 @@ async function run() {
     const userCollection = client.db('CampusCuisine').collection('UserDB')
     const mealRequestCollection = client.db('CampusCuisine').collection('MealRequestDB')
 
+
+    // jwt related api
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res.send({ token });
+    })
+
+    // middlewares 
+    const verifyToken = (req, res, next) => {;
+      console.log('inside verify token', req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: 'unauthorized access' });
+      }
+      const token = req.headers.authorization.split(' ')[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: 'unauthorized access' })
+        }
+        req.decoded = decoded;
+        next();
+      })
+    }
+
+
+
     // for Meal Request
+
+    app.get('/mealsCount', async (req, res) => {
+      const count = await mealsCollection.estimatedDocumentCount();
+      res.send({ count });
+    })
+
 
     app.post('/api/request-meal', async (req, res) => {
       const newMealRequest = req.body;
@@ -60,7 +93,7 @@ async function run() {
 
     // for users
 
-    app.get('/users', async (req, res) => {
+    app.get('/users', verifyToken, async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -75,16 +108,12 @@ async function run() {
     })
 
 
-
     app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const results = await userCollection.find(query).toArray();
       res.send(results);
     });
-
-
-
 
     app.get('/find-user', async (req, res) => {
       try {
@@ -126,28 +155,51 @@ async function run() {
     });
 
 
-    app.put('/update-user-badge/:email', async (req, res) => {
-      const email = req.params.email;
+    // app.put('/update-user-badge/:email', async (req, res) => {
+    //   let email = req.params.email.toLowerCase(); // Convert email to lowercase
+    //   const { badge } = req.body;
+
+    //   try {
+    //     // Find the user by email and update the badge
+    //     const result = await userCollection.updateOne(
+    //       { email: email },
+    //       { $set: { badge } }
+    //     );
+
+    //     if (result.modifiedCount === 0) {
+    //       return res.status(404).json({ error: 'User not found' });
+    //     }
+
+    //     res.json({ success: true });
+    //   } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ error: 'Internal Server Error' });
+    //   }
+    // });
+
+
+    app.put('/update-user-badge/:id', async (req, res) => {
+      const userId = req.params.id;
       const { badge } = req.body;
-    
+      console.log('Received user ID:', userId);
       try {
-        // Find the user by email and update the badge
+        // Find the user by _id and update the badge
         const result = await userCollection.updateOne(
-          { email: email }, // Use email directly as a string
+          { _id: new ObjectId(userId) }, // Use _id directly
           { $set: { badge } }
         );
-    
+
         if (result.modifiedCount === 0) {
           return res.status(404).json({ error: 'User not found' });
         }
-    
+
         res.json({ success: true });
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
       }
     });
-    
+
 
     // for meals
 
@@ -312,6 +364,7 @@ async function run() {
       }
     });
 
+
     app.put('/api/like-meal/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
@@ -389,8 +442,6 @@ async function run() {
       }
     });
 
-
-
     // payment intent
     app.post('/create-payment-intent', async (req, res) => {
       const { price } = req.body;
@@ -408,7 +459,7 @@ async function run() {
       })
     });
 
-// Ends Here
+    // ends here
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

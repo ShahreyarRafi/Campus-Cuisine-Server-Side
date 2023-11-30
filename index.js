@@ -9,7 +9,17 @@ const port = process.env.PORT || 5000;
 
 
 //middleware
-app.use(cors());
+app.use(cors('*'));
+// app.use(cors({
+//   //local
+//   // origin: ['http://localhost:5173'],
+//   //live site
+//   origin: [
+//     'https://campus-cuisine.web.app/',
+//     'https://campus-cuisine.firebaseapp.com/'
+//   ],
+//   credentials: true,
+// }));
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.n8c8sym.mongodb.net/?retryWrites=true&w=majority`;
@@ -44,7 +54,7 @@ async function run() {
     })
 
     // middlewares 
-    const verifyToken = (req, res, next) => {;
+    const verifyToken = (req, res, next) => {
       console.log('inside verify token', req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send({ message: 'unauthorized access' });
@@ -83,6 +93,27 @@ async function run() {
       res.send(result);
     })
 
+    // Assuming you are using Express.js
+    app.put('/api/user/:userId/like-meal', async (req, res) => {
+      const { userId } = req.params;
+      const { mealId } = req.body;
+
+      try {
+        // Find the user by ID and update the likedMeals array
+        const user = await userCollection.findOneAndUpdate(
+          { _id: new ObjectId(userId) },
+          { $push: { likedMeals: new ObjectId(mealId) } },
+          { returnDocument: 'after' } // Return the updated document
+        );
+
+        res.json({ message: 'success', user });
+      } catch (error) {
+        console.error('Error updating user liked meals:', error);
+        res.status(500).json({ error: 'Error updating user liked meals' });
+      }
+    });
+
+
     app.delete('/api/request-meal/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
@@ -90,13 +121,40 @@ async function run() {
       res.send(result);
     })
 
+    // use verify admin after verifyToken
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === 'Admin';
+      if (!isAdmin) {
+        return res.status(403).send({ message: 'forbidden access' });
+      }
+      next();
+    }
+
 
     // for users
-
-    app.get('/users', verifyToken, async (req, res) => {
+    app.get('/users', async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
       res.send(result);
+    })
+
+    app.get('/check-admin/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === 'Admin';
+      }
+      res.send({ admin });
     })
 
     app.post('/user', async (req, res) => {
